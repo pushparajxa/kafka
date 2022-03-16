@@ -1,52 +1,51 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Copyright (c) 2022 D. E. Shaw & Co., L.P. All rights reserved.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This software is the confidential and proprietary information
+ * of D. E. Shaw & Co., L.P. ("Confidential Information")
  */
-package org.apache.kafka.connect.runtime;
+
+package deshaw.middleware.connector;
+
+import deshaw.common.util.LogFactory;
+import deshaw.middleware.connector.DesRestServer;
 
 import org.apache.kafka.common.utils.Exit;
-import org.apache.kafka.connect.runtime.rest.RestServer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.kafka.connect.runtime.Herder;
 
 import java.net.URI;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
 
 /**
- * This class ties together all the components of a Kafka Connect process (herder, worker,
- * storage, command interface), managing their lifecycle.
+ * This class ties together all the components of a Kafka Connect process
+ * (herder, worker, storage, command interface), managing their lifecycle.
+ * This class is exactly same as
+ * {@link org.apache.kafka.connect.runtime.Connect}. 
  */
-public class Connect {
-    private static final Logger log = LoggerFactory.getLogger(Connect.class);
+public class DesConnect
+{
+    private static final Logger log = LogFactory.getLogger(DesConnect.class);
 
     private final Herder herder;
-    private final RestServer rest;
+    private final DesRestServer rest;
     private final CountDownLatch startLatch = new CountDownLatch(1);
     private final CountDownLatch stopLatch = new CountDownLatch(1);
     private final AtomicBoolean shutdown = new AtomicBoolean(false);
     private final ShutdownHook shutdownHook;
 
-    public Connect(Herder herder, RestServer rest) {
-        log.debug("Kafka Connect instance created");
+    public DesConnect(Herder herder, DesRestServer rest)
+    {
+        log.fine("Kafka Connect instance created");
         this.herder = herder;
         this.rest = rest;
         shutdownHook = new ShutdownHook();
     }
 
-    public void start() {
+    public void start() 
+    {
         try {
             log.info("Kafka Connect starting");
             Exit.addShutdownHook("connect-shutdown-hook", shutdownHook);
@@ -60,7 +59,8 @@ public class Connect {
         }
     }
 
-    public void stop() {
+    public void stop() 
+    {
         try {
             boolean wasShuttingDown = shutdown.getAndSet(true);
             if (!wasShuttingDown) {
@@ -76,36 +76,44 @@ public class Connect {
         }
     }
 
-    public void awaitStop() {
+    public void awaitStop()
+    {
         try {
             stopLatch.await();
         } catch (InterruptedException e) {
-            log.error("Interrupted waiting for Kafka Connect to shutdown");
+            log.severe("Interrupted waiting for Kafka Connect to shutdown");
         }
     }
 
-    public boolean isRunning() {
+    public boolean isRunning() 
+    {
         return herder.isRunning();
     }
 
     // Visible for testing
-    public URI restUrl() {
+    public URI restUrl() 
+    {
         return rest.serverUrl();
     }
 
-    public URI adminUrl() {
+    public URI adminUrl() 
+    {
         return rest.adminUrl();
     }
 
-    private class ShutdownHook extends Thread {
+    private class ShutdownHook extends Thread
+    {
         @Override
-        public void run() {
+        public void run() 
+        {
             try {
                 startLatch.await();
-                Connect.this.stop();
+                DesConnect.this.stop();
             } catch (InterruptedException e) {
-                log.error("Interrupted in shutdown hook while waiting for Kafka Connect startup to finish");
+                log.severe("Interrupted in shutdown hook while waiting for " +
+                                "Kafka Connect startup to finish");
             }
         }
     }
 }
+
